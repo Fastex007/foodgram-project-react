@@ -1,19 +1,21 @@
 import io
 
+from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, SAFE_METHODS
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from api.filters import AuthorTagFilter, IngredientSearchFilter
-from api.models import (Favorite, Ingredient, NecessaryIngredients, Recipe,
+from api.models import (Favorite, Ingredient, NecessaryIngredient, Recipe,
                         ShoppingCart, Tag)
 from api.pagination import PaginationLimit
 from api.serializers import (ShortRecipeSerializer, IngredientSerializer,
-                             RecipeSerializer, TagSerializer)
+                             RecipeReadSerializer, RecipeWriteSerializer,
+                             TagSerializer)
 from constants.types import MessageTypes, MessageTexts
 from users.permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly
 
@@ -34,10 +36,16 @@ class IngredientsViewSet(ReadOnlyModelViewSet):
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
-    serializer_class = RecipeSerializer
     pagination_class = PaginationLimit
     filter_class = AuthorTagFilter
     permission_classes = [IsOwnerOrReadOnly]
+
+    def get_serializer_class(self):
+        if self.request.method in SAFE_METHODS:
+            return RecipeReadSerializer
+        return RecipeWriteSerializer
+
+    serializer = get_serializer_class()
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -64,29 +72,18 @@ class RecipeViewSet(viewsets.ModelViewSet):
             permission_classes=[IsAuthenticated])
     def download_shopping_cart(self, request):
         result = {}
-        ingredients = NecessaryIngredients.objects.filter(
+        ingredients = NecessaryIngredient.objects.filter(
             recipe__shoppingcart__user=request.user
-        ).values_list(
-            'ingredient__name',
-            'ingredient__measurement_unit',
-            'amount',
-        )
-        for one in ingredients:
-            name = one[0]
-            if name not in result:
-                result[name] = {
-                    'measurement_unit': one[1],
-                    'amount': one[2]
-                }
-            else:
-                result[name]['amount'] += one[2]
+        ).annotate(total_amount=Sum('ingredient__amount'))
 
+        if ingredients:
             with io.StringIO() as recepies_ingredients:
-                recepies_ingredients.write('Ингридиенты\n')
-                for idx, (name, data) in enumerate(result):
+                recepies_ingredients.write('Ингредиенты\n')
+                for idx, data in enumerate(ingredients):
                     recepies_ingredients.write(
-                        f'{idx}.  {name} - {data["amount"]} '
-                        f'({data["measurement_unit"]})\n'
+                        f'{idx}.  {data.get("name")} - '
+                        f'{data.get("total_amount")} '
+                        f'({data.get("measurement_unit")})\n'
                     )
                 recepies_ingredients.seek(0)
                 return HttpResponse(
@@ -102,7 +99,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def add_obj(self, model, user, pk):
         if model.objects.filter(user=user, recipe__id=pk).exists():
             return Response({
-                MessageTypes.Error: MessageTexts.RecepieAllReadyContainsInList
+                MessageTypes.Error: MessageTexts.recepie_allready_contains_in_list
             }, status=status.HTTP_400_BAD_REQUEST)
         recipe = get_object_or_404(Recipe, id=pk)
         model.objects.create(user=user, recipe=recipe)
@@ -115,5 +112,5 @@ class RecipeViewSet(viewsets.ModelViewSet):
             obj.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response({
-            MessageTypes.Error: MessageTexts.RecepieAllReadyRemoved
+            MessageTypes.Error: MessageTexts.recepie_allready_removed
         }, status=status.HTTP_404_NOT_FOUND)

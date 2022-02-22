@@ -3,7 +3,7 @@ from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
-from api.models import Ingredient, NecessaryIngredients, Recipe, Tag
+from api.models import Ingredient, NecessaryIngredient, Recipe, Tag
 from users.models import Follow
 from users.serializers import FoodgramUserSerializer
 from constants.types import MessageTypes, MessageTexts
@@ -21,7 +21,7 @@ class IngredientSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class NecessaryIngredientsSerializer(serializers.ModelSerializer):
+class NecessaryIngredientSerializer(serializers.ModelSerializer):
     id = serializers.ReadOnlyField(source='ingredient.id')
     name = serializers.ReadOnlyField(source='ingredient.name')
     measurement_unit = serializers.ReadOnlyField(
@@ -29,7 +29,7 @@ class NecessaryIngredientsSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        model = NecessaryIngredients
+        model = NecessaryIngredient
         fields = (
             'id',
             'name',
@@ -38,7 +38,7 @@ class NecessaryIngredientsSerializer(serializers.ModelSerializer):
         )
         validators = [
             UniqueTogetherValidator(
-                queryset=NecessaryIngredients.objects.all(),
+                queryset=NecessaryIngredient.objects.all(),
                 fields=[
                     'recipe',
                     'ingredient',
@@ -47,12 +47,11 @@ class NecessaryIngredientsSerializer(serializers.ModelSerializer):
         ]
 
 
-class RecipeSerializer(serializers.ModelSerializer):
-    image = Base64ImageField()
+class RecipeReadSerializer(serializers.ModelSerializer):
     tags = TagSerializer(read_only=True, many=True)
     author = FoodgramUserSerializer(read_only=True)
-    ingredients = NecessaryIngredientsSerializer(
-        source='necessaryingredients_set',
+    ingredients = NecessaryIngredientSerializer(
+        source='necessaryingredient_set',
         many=True,
         read_only=True,
     )
@@ -88,11 +87,32 @@ class RecipeSerializer(serializers.ModelSerializer):
             shoppingcart__user=user, id=obj.id
         ).exists()
 
+
+class RecipeWriteSerializer(serializers.ModelSerializer):
+    image = Base64ImageField()
+    tags = TagSerializer(read_only=True, many=True)
+    ingredients = NecessaryIngredientSerializer(
+        source='necessaryingredient_set',
+        many=True,
+        read_only=True,
+    )
+
+    class Meta:
+        model = Recipe
+        fields = (
+            'name',
+            'image',
+            'text',
+            'cooking_time',
+            'tags',
+            'ingredients',
+        )
+
     def validate(self, data):
         ingredients = self.initial_data.get('ingredients')
         if not ingredients:
             raise serializers.ValidationError({
-                MessageTypes.Error: MessageTexts.NoIngredients,
+                MessageTypes.Error: MessageTexts.no_ingredients,
             })
         ingredient_list = []
         for ingredient_item in ingredients:
@@ -102,19 +122,19 @@ class RecipeSerializer(serializers.ModelSerializer):
             )
             if ingredient in ingredient_list:
                 raise serializers.ValidationError({
-                    MessageTypes.Error: MessageTexts.NotUniqueIngredients
+                    MessageTypes.Error: MessageTexts.not_unique_ingredients
                 })
             ingredient_list.append(ingredient)
             if int(ingredient_item['amount']) < 1:
                 raise serializers.ValidationError({
-                    MessageTypes.Error: MessageTexts.NoIngredientCount,
+                    MessageTypes.Error: MessageTexts.no_ingredient_count,
                 })
         data['ingredients'] = ingredients
         return data
 
     def create_ingredients(self, ingredients, recipe):
         for ingredient in ingredients:
-            NecessaryIngredients.objects.create(
+            return NecessaryIngredient.objects.create(
                 recipe=recipe,
                 ingredient_id=ingredient.get('id'),
                 amount=ingredient.get('amount'),
@@ -130,19 +150,10 @@ class RecipeSerializer(serializers.ModelSerializer):
         return recipe
 
     def update(self, instance, validated_data):
-        instance.image = validated_data.get('image', instance.image)
-        instance.name = validated_data.get('name', instance.name)
-        instance.text = validated_data.get('text', instance.text)
-        instance.cooking_time = validated_data.get(
-            'cooking_time', instance.cooking_time
-        )
+        instance.ingredients.clear()
         instance.tags.clear()
-        tags_data = self.initial_data.get('tags')
-        instance.tags.set(tags_data)
-        NecessaryIngredients.objects.filter(recipe=instance).all().delete()
-        self.create_ingredients(validated_data.get('ingredients'), instance)
-        instance.save()
-        return instance
+        instance = self.create_ingredients(instance, validated_data)
+        return super().update(instance, validated_data)
 
 
 class ShortRecipeSerializer(serializers.ModelSerializer):

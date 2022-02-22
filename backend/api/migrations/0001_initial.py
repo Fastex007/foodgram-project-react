@@ -40,15 +40,15 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='NecessaryIngredients',
+            name='NecessaryIngredient',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('amount', models.PositiveSmallIntegerField(validators=[django.core.validators.MinValueValidator(1, message='Минимальное количество 1')], verbose_name='Количество')),
-                ('ingredient', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='api.Ingredient', verbose_name='Ингридиент')),
+                ('ingredient', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='api.Ingredient', verbose_name='Ингредиент')),
             ],
             options={
-                'verbose_name': 'Необходимый ингридиент',
-                'verbose_name_plural': 'Необходимые ингридиенты',
+                'verbose_name': 'Необходимый ингредиент',
+                'verbose_name_plural': 'Необходимые ингредиенты',
                 'ordering': ['-id'],
             },
         ),
@@ -62,7 +62,7 @@ class Migration(migrations.Migration):
                 ('cooking_time', models.PositiveSmallIntegerField(validators=[django.core.validators.MinValueValidator(1, message='Минимальное время 1 минута')], verbose_name='Время приготовления, мин')),
                 ('pub_date', models.DateTimeField(auto_now_add=True, verbose_name='Дата публикации')),
                 ('author', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='recipes', to=settings.AUTH_USER_MODEL, verbose_name='Автор')),
-                ('ingredients', models.ManyToManyField(related_name='recipes', through='api.NecessaryIngredients', to='api.Ingredient', verbose_name='Ингридиенты')),
+                ('ingredients', models.ManyToManyField(related_name='recipes', through='api.NecessaryIngredient', to='api.Ingredient', verbose_name='Ингредиенты')),
             ],
             options={
                 'verbose_name': 'Рецепт',
@@ -103,7 +103,7 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(to='api.Tag', verbose_name='Теги'),
         ),
         migrations.AddField(
-            model_name='necessaryingredients',
+            model_name='necessaryingredient',
             name='recipe',
             field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='api.Recipe', verbose_name='Рецепт'),
         ),
@@ -126,7 +126,7 @@ class Migration(migrations.Migration):
             constraint=models.UniqueConstraint(fields=('user', 'recipe'), name='unique shoppingcart user'),
         ),
         migrations.AddConstraint(
-            model_name='necessaryingredients',
+            model_name='necessaryingredient',
             constraint=models.UniqueConstraint(fields=('ingredient', 'recipe'), name='unique ingredients recipe'),
         ),
         migrations.AddConstraint(

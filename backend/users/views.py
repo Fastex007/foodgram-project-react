@@ -9,7 +9,6 @@ from rest_framework.response import Response
 from api.pagination import PaginationLimit
 from api.serializers import FollowSerializer
 from constants.types import MessageTexts, MessageTypes
-
 from .models import Follow
 
 User = get_user_model()
@@ -25,12 +24,12 @@ class FoodgramUserViewSet(UserViewSet):
 
         if user == author:
             return Response({
-                MessageTypes.Error: MessageTexts.SelfSubscribing
+                MessageTypes.Error: MessageTexts.self_subscribing
             }, status=status.HTTP_400_BAD_REQUEST)
 
         if Follow.objects.filter(user=user, author=author).exists():
             return Response({
-                MessageTypes.Error: MessageTexts.AllReadySubscribed
+                MessageTypes.Error: MessageTexts.allready_subscribed
             }, status=status.HTTP_400_BAD_REQUEST)
 
         follow = Follow.objects.create(user=user, author=author)
@@ -44,7 +43,7 @@ class FoodgramUserViewSet(UserViewSet):
 
         if user == author:
             return Response({
-                MessageTypes.Error: MessageTexts.SelfUnsubscribing
+                MessageTypes.Error: MessageTexts.self_unsubscribing
             }, status=status.HTTP_400_BAD_REQUEST)
 
         follow = Follow.objects.filter(user=user, author=author)
@@ -54,7 +53,7 @@ class FoodgramUserViewSet(UserViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         return Response({
-            MessageTypes.Error: MessageTexts.AllReadyUnsubscribed
+            MessageTypes.Error: MessageTexts.allready_unsubscribed
         }, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, permission_classes=[IsAuthenticated])

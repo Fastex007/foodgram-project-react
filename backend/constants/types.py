@@ -20,28 +20,28 @@ class MessageTypes(TypesBase):
 
 
 class MessageTexts(TypesBase):
-    SelfSubscribing = 1
-    AllReadySubscribed = 2
-    SelfUnsubscribing = 3
-    AllReadyUnsubscribed = 4
-    NoIngredients = 5
-    NotUniqueIngredients = 6
-    NoIngredientCount = 7
-    RecepieAllReadyContainsInList = 8
-    RecepieAllReadyRemoved = 9
-    MinCookingTime = 10
-    MinIngredientsCount = 11
+    self_subscribing = 1
+    allready_subscribed = 2
+    self_unsubscribing = 3
+    allready_unsubscribed = 4
+    no_ingredients = 5
+    not_unique_ingredients = 6
+    no_ingredient_count = 7
+    recepie_allready_contains_in_list = 8
+    recepie_allready_removed = 9
+    min_cooking_time = 10
+    min_ingredients_count = 11
 
     _titles = {
-        SelfSubscribing: 'Вы не можете подписываться на самого себя',
-        AllReadySubscribed: 'Вы уже подписаны на данного пользователя',
-        SelfUnsubscribing: 'Вы не можете отписываться от самого себя',
-        AllReadyUnsubscribed: 'Вы уже отписались от данного пользователя',
-        NoIngredients: 'Не выбрано ни одного ингридиента',
-        NotUniqueIngredients: 'Данный ингридиенет уже выбран',
-        NoIngredientCount: 'Не указано количество',
-        RecepieAllReadyContainsInList: 'Рецепт уже добавлен в список',
-        RecepieAllReadyRemoved: 'Рецепт уже удален',
-        MinCookingTime: 'Время приготовления должно быть >= 1 минут',
-        MinIngredientsCount: 'Минимальное ингридиентов должно быть >= 1'
+        self_subscribing: 'Вы не можете подписываться на самого себя',
+        allready_subscribed: 'Вы уже подписаны на данного пользователя',
+        self_unsubscribing: 'Вы не можете отписываться от самого себя',
+        allready_unsubscribed: 'Вы уже отписались от данного пользователя',
+        no_ingredients: 'Не выбрано ни одного ингредиента',
+        not_unique_ingredients: 'Данный ингредиент уже выбран',
+        no_ingredient_count: 'Не указано количество',
+        recepie_allready_contains_in_list: 'Рецепт уже добавлен в список',
+        recepie_allready_removed: 'Рецепт уже удален',
+        min_cooking_time: 'Время приготовления должно быть >= 1 минут',
+        min_ingredients_count: 'Минимальное ингредиентов должно быть >= 1'
     }
