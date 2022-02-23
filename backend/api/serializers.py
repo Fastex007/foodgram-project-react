@@ -1,12 +1,11 @@
+from api.models import Ingredient, NecessaryIngredient, Recipe, Tag
+from constants.types import MessageTexts, MessageTypes
 from django.shortcuts import get_object_or_404
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
-
-from api.models import Ingredient, NecessaryIngredient, Recipe, Tag
 from users.models import Follow
 from users.serializers import FoodgramUserSerializer
-from constants.types import MessageTypes, MessageTexts
 
 
 class TagSerializer(serializers.ModelSerializer):

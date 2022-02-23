@@ -1,22 +1,21 @@
 import io
 
+from api.filters import AuthorTagFilter, IngredientSearchFilter
+from api.models import (Favorite, Ingredient, NecessaryIngredient, Recipe,
+                        ShoppingCart, Tag)
+from api.pagination import PaginationLimit
+from api.serializers import (IngredientSerializer, RecipeReadSerializer,
+                             RecipeWriteSerializer, ShortRecipeSerializer,
+                             TagSerializer)
+from constants.types import MessageTexts, MessageTypes
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated, SAFE_METHODS
+from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet
-
-from api.filters import AuthorTagFilter, IngredientSearchFilter
-from api.models import (Favorite, Ingredient, NecessaryIngredient, Recipe,
-                        ShoppingCart, Tag)
-from api.pagination import PaginationLimit
-from api.serializers import (ShortRecipeSerializer, IngredientSerializer,
-                             RecipeReadSerializer, RecipeWriteSerializer,
-                             TagSerializer)
-from constants.types import MessageTypes, MessageTexts
 from users.permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly
 
 
@@ -71,7 +70,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'],
             permission_classes=[IsAuthenticated])
     def download_shopping_cart(self, request):
-        result = {}
         ingredients = NecessaryIngredient.objects.filter(
             recipe__shoppingcart__user=request.user
         ).annotate(total_amount=Sum('ingredient__amount'))
@@ -99,7 +97,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def add_obj(self, model, user, pk):
         if model.objects.filter(user=user, recipe__id=pk).exists():
             return Response({
-                MessageTypes.Error: MessageTexts.recepie_allready_contains_in_list
+                MessageTypes.Error:
+                    MessageTexts.recepie_allready_contains_in_list
             }, status=status.HTTP_400_BAD_REQUEST)
         recipe = get_object_or_404(Recipe, id=pk)
         model.objects.create(user=user, recipe=recipe)
