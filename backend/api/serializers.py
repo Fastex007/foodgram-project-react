@@ -1,9 +1,11 @@
-from api.models import Ingredient, NecessaryIngredient, Recipe, Tag
-from constants.types import MessageTexts, MessageTypes
 from django.shortcuts import get_object_or_404
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
+
+# Импорты сгруппированные так по какой-то неведомой причине не проходят тесты при деплое :(
+from api.models import Ingredient, NecessaryIngredient, Recipe, Tag
+from constants.types import MessageTexts, MessageTypes
 from users.models import Follow
 from users.serializers import FoodgramUserSerializer
 

@@ -1,6 +1,3 @@
-from api.pagination import PaginationLimit
-from api.serializers import FollowSerializer
-from constants.types import MessageTexts, MessageTypes
 from django.contrib.auth import get_user_model
 from djoser.views import UserViewSet
 from rest_framework import status
@@ -8,6 +5,10 @@ from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+
+from api.pagination import PaginationLimit
+from api.serializers import FollowSerializer
+from constants.types import MessageTexts, MessageTypes
 
 from .models import Follow
 

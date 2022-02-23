@@ -1,7 +1,8 @@
-from constants.types import MessageTexts
 from django.contrib.auth import get_user_model
 from django.core import validators
 from django.db import models
+
+from constants.types import MessageTexts
 
 User = get_user_model()
 
