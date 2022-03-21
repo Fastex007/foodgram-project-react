@@ -55,14 +55,6 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USER }}
           privateKey: ${{ secrets.SSH_KEY }}
-    - name: Copy data ingredients
-      uses: garygrossgarten/github-action-scp@release
-      with:
-          local: data/
-          remote: /home/${{ secrets.USER }}/data/
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USER }}
-          privateKey: ${{ secrets.SSH_KEY }}
 
   build_and_push_to_docker_hub:
     name: Push Docker image to Docker Hub

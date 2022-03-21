@@ -3,7 +3,6 @@ from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
-# Импорты сгруппированные так по какой-то неведомой причине не проходят тесты при деплое :(
 from api.models import Ingredient, NecessaryIngredient, Recipe, Tag
 from constants.types import MessageTexts, MessageTypes
 from users.models import Follow
@@ -41,14 +40,15 @@ class NecessaryIngredientSerializer(serializers.ModelSerializer):
             UniqueTogetherValidator(
                 queryset=NecessaryIngredient.objects.all(),
                 fields=[
-                    'recipe',
                     'ingredient',
+                    'recipe',
                 ]
             )
         ]
 
 
-class RecipeReadSerializer(serializers.ModelSerializer):
+class RecipeSerializer(serializers.ModelSerializer):
+    image = Base64ImageField()
     tags = TagSerializer(read_only=True, many=True)
     author = FoodgramUserSerializer(read_only=True)
     ingredients = NecessaryIngredientSerializer(
@@ -63,13 +63,13 @@ class RecipeReadSerializer(serializers.ModelSerializer):
         model = Recipe
         fields = (
             'id',
+            'author',
             'name',
             'image',
+            'ingredients',
             'text',
             'cooking_time',
-            'author',
             'tags',
-            'ingredients',
             'is_favorited',
             'is_in_shopping_cart',
         )
@@ -78,39 +78,22 @@ class RecipeReadSerializer(serializers.ModelSerializer):
         user = self.context.get('request').user
         if user.is_anonymous:
             return False
-        return Recipe.objects.filter(favorites__user=user, id=obj.id).exists()
+        return Recipe.objects.filter(
+            favorites__user=user,
+            id=obj.id
+        ).exists()
 
     def get_is_in_shopping_cart(self, obj):
         user = self.context.get('request').user
         if user.is_anonymous:
             return False
         return Recipe.objects.filter(
-            shoppingcart__user=user, id=obj.id
+            shoppingcart__user=user,
+            id=obj.id
         ).exists()
 
-
-class RecipeWriteSerializer(serializers.ModelSerializer):
-    image = Base64ImageField()
-    tags = TagSerializer(read_only=True, many=True)
-    ingredients = NecessaryIngredientSerializer(
-        source='necessaryingredient_set',
-        many=True,
-        read_only=True,
-    )
-
-    class Meta:
-        model = Recipe
-        fields = (
-            'name',
-            'image',
-            'text',
-            'cooking_time',
-            'tags',
-            'ingredients',
-        )
-
     def validate(self, data):
-        ingredients = data.get('ingredients')
+        ingredients = self.initial_data.get('ingredients')
         if not ingredients:
             raise serializers.ValidationError({
                 MessageTypes.Error: MessageTexts.no_ingredients,
@@ -126,7 +109,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
                     MessageTypes.Error: MessageTexts.not_unique_ingredients
                 })
             ingredient_list.append(ingredient)
-            if int(ingredient_item['amount']) < 1:
+            if int(ingredient_item['amount']) < 0:
                 raise serializers.ValidationError({
                     MessageTypes.Error: MessageTexts.no_ingredient_count,
                 })
@@ -135,7 +118,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
 
     def create_ingredients(self, ingredients, recipe):
         for ingredient in ingredients:
-            return NecessaryIngredient.objects.create(
+            NecessaryIngredient.objects.create(
                 recipe=recipe,
                 ingredient_id=ingredient.get('id'),
                 amount=ingredient.get('amount'),
@@ -145,16 +128,25 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         image = validated_data.pop('image')
         ingredients_data = validated_data.pop('ingredients')
         recipe = Recipe.objects.create(image=image, **validated_data)
-        tags_data = validated_data.get('tags')
+        tags_data = self.initial_data.get('tags')
         recipe.tags.set(tags_data)
         self.create_ingredients(ingredients_data, recipe)
         return recipe
 
     def update(self, instance, validated_data):
-        instance.ingredients.clear()
+        instance.image = validated_data.get('image', instance.image)
+        instance.name = validated_data.get('name', instance.name)
+        instance.text = validated_data.get('text', instance.text)
+        instance.cooking_time = validated_data.get(
+            'cooking_time', instance.cooking_time
+        )
         instance.tags.clear()
-        instance = self.create_ingredients(instance, validated_data)
-        return super().update(instance, validated_data)
+        tags_data = self.initial_data.get('tags')
+        instance.tags.set(tags_data)
+        NecessaryIngredient.objects.filter(recipe=instance).all().delete()
+        self.create_ingredients(validated_data.get('ingredients'), instance)
+        instance.save()
+        return instance
 
 
 class ShortRecipeSerializer(serializers.ModelSerializer):
@@ -178,8 +170,8 @@ class ShortRecipeSerializer(serializers.ModelSerializer):
 
 class FollowSerializer(serializers.ModelSerializer):
     id = serializers.ReadOnlyField(source='author.id')
-    username = serializers.ReadOnlyField(source='author.username')
     email = serializers.ReadOnlyField(source='author.email')
+    username = serializers.ReadOnlyField(source='author.username')
     first_name = serializers.ReadOnlyField(source='author.first_name')
     last_name = serializers.ReadOnlyField(source='author.last_name')
     is_subscribed = serializers.SerializerMethodField()
@@ -190,8 +182,8 @@ class FollowSerializer(serializers.ModelSerializer):
         model = Follow
         fields = (
             'id',
-            'username',
             'email',
+            'username',
             'first_name',
             'last_name',
             'is_subscribed',

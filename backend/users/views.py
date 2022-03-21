@@ -9,8 +9,7 @@ from rest_framework.response import Response
 from api.pagination import PaginationLimit
 from api.serializers import FollowSerializer
 from constants.types import MessageTexts, MessageTypes
-
-from .models import Follow
+from users.models import Follow
 
 User = get_user_model()
 
@@ -18,7 +17,8 @@ User = get_user_model()
 class FoodgramUserViewSet(UserViewSet):
     pagination_class = PaginationLimit
 
-    @action(detail=True, permission_classes=[IsAuthenticated])
+    @action(detail=True, methods=['post'],
+            permission_classes=[IsAuthenticated])
     def subscribe(self, request, id=None):
         user = request.user
         author = get_object_or_404(User, id=id)
